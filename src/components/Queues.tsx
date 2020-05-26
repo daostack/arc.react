@@ -1,53 +1,47 @@
 import * as React from "react";
 import { Observable } from "rxjs";
-import { IProposalQueryOptions as FilterOptions } from "@daostack/client";
+import { IQueueQueryOptions as FilterOptions } from "@daostack/arc.js";
 import {
   Arc as Protocol,
   ArcConfig as ProtocolConfig,
   DAO,
   DAOEntity,
-  Member,
-  MemberEntity,
-  InferredProposal as Component,
-  ProposalEntity as Entity,
-  ProposalData as Data,
+  InferredQueue as Component,
+  QueueEntity as Entity,
+  QueueData as Data,
   CProps,
   ComponentList,
   ComponentListLogs,
   ComponentListProps,
-  applyScope,
+  createFilterFromScope,
 } from "../";
 import { CreateContextFeed } from "../runtime/ContextFeed";
 
-type Scopes = "DAO" | "Member as proposer";
+type Scopes = "DAO";
 
 const scopeProps: Record<Scopes, string> = {
   DAO: "dao",
-  "Member as proposer": "proposer",
 };
 
-interface RequiredProps
-  extends ComponentListProps<Entity, Data, FilterOptions> {
+interface RequiredProps extends ComponentListProps<Entity, FilterOptions> {
   from?: Scopes;
+  dao?: DAOEntity | string;
 }
 
 interface InferredProps extends RequiredProps {
   config: ProtocolConfig;
-  dao?: string;
-  proposer?: string;
 }
 
-class InferredProposals extends ComponentList<InferredProps, Component> {
+class InferredQueues extends ComponentList<InferredProps, Component> {
   createObservableEntities(): Observable<Entity[]> {
     const { config, from, filter } = this.props;
-
     if (!config) {
       throw Error(
         "Arc Config Missing: Please provide this field as a prop, or use the inference component."
       );
     }
 
-    const f = applyScope(filter, from, scopeProps, this.props);
+    const f = createFilterFromScope(filter, from, scopeProps, this.props);
     return Entity.search(config.connection, f);
   }
 
@@ -56,11 +50,14 @@ class InferredProposals extends ComponentList<InferredProps, Component> {
     children: any,
     index: number
   ): React.ComponentElement<CProps<Component>, any> {
+    const { config, dao } = this.props;
     return (
       <Component
         key={`${entity.id}_${index}`}
+        dao={dao}
         id={entity.id}
-        config={this.props.config}
+        config={config}
+        entity={entity}
       >
         {children}
       </Component>
@@ -69,31 +66,31 @@ class InferredProposals extends ComponentList<InferredProps, Component> {
 
   public static get Entities() {
     return CreateContextFeed(
-      this._EntitiesContext.Consumer,
-      this._LogsContext.Consumer,
-      "Proposals"
+      this.EntitiesContext.Consumer,
+      this.LogsContext.Consumer,
+      "Queues"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
-      "Proposals"
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      "Queues"
     );
   }
 
-  protected static _EntitiesContext = React.createContext<Entity[] | undefined>(
+  protected static EntitiesContext = React.createContext<Entity[] | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
+  protected static LogsContext = React.createContext<
     ComponentListLogs | undefined
   >(undefined);
 }
 
-class Proposals extends React.Component<RequiredProps> {
+class Queues extends React.Component<RequiredProps> {
   render() {
-    const { children, from, sort, filter } = this.props;
+    const { children, sort, from, filter } = this.props;
 
     return (
       <Protocol.Config>
@@ -103,31 +100,16 @@ class Proposals extends React.Component<RequiredProps> {
               return (
                 <DAO.Entity>
                   {(dao: DAOEntity) => (
-                    <InferredProposals
+                    <InferredQueues
                       dao={dao.id}
                       config={config}
                       sort={sort}
                       filter={filter}
                     >
                       {children}
-                    </InferredProposals>
+                    </InferredQueues>
                   )}
                 </DAO.Entity>
-              );
-            case "Member as proposer":
-              return (
-                <Member.Entity>
-                  {(member: MemberEntity) => (
-                    <InferredProposals
-                      proposer={member.staticState!.address}
-                      config={config}
-                      sort={sort}
-                      filter={filter}
-                    >
-                      {children}
-                    </InferredProposals>
-                  )}
-                </Member.Entity>
               );
             default:
               if (from) {
@@ -135,9 +117,9 @@ class Proposals extends React.Component<RequiredProps> {
               }
 
               return (
-                <InferredProposals config={config} sort={sort} filter={filter}>
+                <InferredQueues config={config} sort={sort} filter={filter}>
                   {children}
-                </InferredProposals>
+                </InferredQueues>
               );
           }
         }}
@@ -146,14 +128,14 @@ class Proposals extends React.Component<RequiredProps> {
   }
 
   public static get Entities() {
-    return InferredProposals.Entities;
+    return InferredQueues.Entities;
   }
 
   public static get Logs() {
-    return InferredProposals.Logs;
+    return InferredQueues.Logs;
   }
 }
 
-export default Proposals;
+export default Queues;
 
-export { Proposals, InferredProposals };
+export { Queues, InferredQueues };

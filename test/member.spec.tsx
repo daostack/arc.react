@@ -1,5 +1,11 @@
 import React from "react";
 import {
+  render,
+  screen,
+  cleanup,
+  waitForElementToBeRemoved,
+} from "@testing-library/react";
+import {
   Arc,
   ArcConfig,
   DAO,
@@ -7,23 +13,17 @@ import {
   Member,
   DAOData,
   Members,
+  useMember,
 } from "../src";
-import {
-  render,
-  screen,
-  waitForElementToBeRemoved,
-  waitFor,
-  cleanup,
-} from "@testing-library/react";
 
-const daoAddress = "0xe7a2c59e134ee81d4035ae6db2254f79308e334f";
+const daoAddress = "0x41e5eb4acf9d65e4ac220e9afdccba0213cf60ec";
+const memberAddress = "0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1";
 const arcConfig = new ArcConfig("private");
 
 describe("Member component ", () => {
   afterEach(() => cleanup());
 
   it("Shows member and dao address with inferred props", async () => {
-    const memberAddress = "0xe11ba2b4d45eaed5996cd0823791e0c93114882d";
     const { container } = render(
       <Arc config={arcConfig}>
         <DAO address={daoAddress}>
@@ -33,7 +33,7 @@ describe("Member component ", () => {
                 {(dao: DAOData, member: MemberData) => (
                   <>
                     <div>{"Member address: " + member.address}</div>
-                    <div>{"DAO address: " + dao.id}</div>
+                    <div>{"DAO address: " + dao.address}</div>
                   </>
                 )}
               </Member.Data>
@@ -60,27 +60,56 @@ describe("Member component ", () => {
   });
 
   it("Shows member and dao address without inferred props", async () => {
-    const daoAddress = "0xe7a2c59e134ee81d4035ae6db2254f79308e334f";
-    const memberAddress = "0xe11ba2b4d45eaed5996cd0823791e0c93114882d";
-    const { container } = render(
+    const { container, findByText } = render(
       <Arc config={arcConfig}>
         <Member address={memberAddress} dao={daoAddress}>
           <Member.Data>
             {(member: MemberData) => (
               <>
                 <div>{"Member address: " + member.address}</div>
-                <div>{"DAO address: " + member.dao}</div>
+                <div>{"DAO address: " + member.dao.id}</div>
               </>
             )}
           </Member.Data>
         </Member>
       </Arc>
     );
-
-    const member = await screen.findByText(/Member address:/);
-    const dao = await screen.findByText(/DAO address:/);
+    const member = await findByText(/Member address:/);
+    const dao = await findByText(/DAO address:/);
     expect(member).toBeInTheDocument();
     expect(dao).toBeInTheDocument();
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <div>
+          Member address: ${memberAddress}
+        </div>
+        <div>
+          DAO address: ${daoAddress}
+        </div>
+      </div>
+    `);
+  });
+
+  it("Shows address using useMember", async () => {
+    const MemberWithHooks = () => {
+      const [memberData] = useMember();
+      return (
+        <>
+          <div>{"Member address: " + memberData?.address}</div>
+          <div>{"DAO address: " + memberData?.dao.id}</div>
+        </>
+      );
+    };
+    const { container, findByText } = render(
+      <Arc config={arcConfig}>
+        <Member address={memberAddress} dao={daoAddress}>
+          <MemberWithHooks />
+        </Member>
+      </Arc>
+    );
+
+    const name = await findByText(/Member address:/);
+    expect(name).toBeInTheDocument();
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div>
@@ -117,12 +146,7 @@ describe("Member List", () => {
   }
 
   it("Show list of member ", async () => {
-    const { findAllByText, queryAllByTestId, findByText } = render(
-      <MemberList />
-    );
-    await waitFor(() => findByText(/Member address:/), {
-      timeout: 8000,
-    });
+    const { findAllByText, queryAllByTestId } = render(<MemberList />);
     await waitForElementToBeRemoved(() => queryAllByTestId("default-loader"), {
       timeout: 8000,
     });

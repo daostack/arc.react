@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Member as Entity, IMemberState as Data } from "@daostack/client";
+import { Member as Entity, IMemberState as Data } from "@daostack/arc.js";
 import {
   Arc as Protocol,
   ArcConfig as ProtocolConfig,
@@ -7,15 +7,14 @@ import {
   DAOEntity,
   Component,
   ComponentLogs,
+  ComponentProps,
 } from "../";
 import { CreateContextFeed } from "../runtime/ContextFeed";
 
-interface RequiredProps {
+interface RequiredProps extends ComponentProps<Entity, Data> {
   // Address of the member
   address: string;
-
-  // Address of the DAO Avatar
-  dao?: string;
+  dao?: string | DAOEntity;
 }
 
 interface InferredProps extends RequiredProps {
@@ -23,55 +22,68 @@ interface InferredProps extends RequiredProps {
 }
 
 class InferredMember extends Component<InferredProps, Entity, Data> {
-  protected createEntity(): Entity {
+  protected async createEntity(): Promise<Entity> {
     const { address, dao, config } = this.props;
 
     if (!dao) {
       throw Error(
-        "DAO Address Missing: Please provide this field as a prop, or use the inference component."
+        "DAO Missing: Please provide this field as a prop, or use the inference component."
       );
     }
 
-    return new Entity({ address, dao }, config.connection);
-  }
+    const daoEntity: DAOEntity =
+      typeof dao === "string" ? new DAOEntity(config.connection, dao) : dao;
 
-  protected async initialize(entity: Entity): Promise<void> {
-    await entity.fetchStaticState();
+    const daoState = await daoEntity.fetchState();
+
+    const memberId: string = Entity.calculateId({
+      contract: daoState.reputation.id,
+      address,
+    });
+
+    return new Entity(config.connection, memberId);
   }
 
   public static get Entity() {
     return CreateContextFeed(
-      this._EntityContext.Consumer,
-      this._LogsContext.Consumer,
+      this.EntityContext.Consumer,
+      this.LogsContext.Consumer,
       "Member"
     );
   }
 
   public static get Data() {
     return CreateContextFeed(
-      this._DataContext.Consumer,
-      this._LogsContext.Consumer,
+      this.DataContext.Consumer,
+      this.LogsContext.Consumer,
       "Member"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
       "Member"
     );
   }
 
-  protected static _EntityContext = React.createContext<Entity | undefined>(
+  public static EntityContext = React.createContext<Entity | undefined>(
     undefined
   );
-  protected static _DataContext = React.createContext<Data | undefined>(
+  public static DataContext = React.createContext<Data | undefined>(undefined);
+  public static LogsContext = React.createContext<ComponentLogs | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
-    ComponentLogs | undefined
-  >(undefined);
+}
+
+function useMember(): [Data | undefined, Entity | undefined] {
+  const data = React.useContext<Data | undefined>(InferredMember.DataContext);
+  const entity = React.useContext<Entity | undefined>(
+    InferredMember.EntityContext
+  );
+
+  return [data, entity];
 }
 
 class Member extends React.Component<RequiredProps> {
@@ -90,10 +102,10 @@ class Member extends React.Component<RequiredProps> {
           } else {
             return (
               <DAO.Entity>
-                {(entity: DAOEntity | undefined) => (
+                {(entity: DAOEntity) => (
                   <InferredMember
                     address={address}
-                    dao={entity ? entity.id : undefined}
+                    dao={entity}
                     config={config}
                   >
                     {children}
@@ -122,4 +134,10 @@ class Member extends React.Component<RequiredProps> {
 
 export default Member;
 
-export { Member, InferredMember, Entity as MemberEntity, Data as MemberData };
+export {
+  Member,
+  InferredMember,
+  Entity as MemberEntity,
+  Data as MemberData,
+  useMember,
+};

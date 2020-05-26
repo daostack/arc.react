@@ -1,5 +1,5 @@
 import React from "react";
-import { Arc, ArcConfig, VoteData, Vote, Votes } from "../src";
+import { Arc, ArcConfig, VoteData, Vote, Votes, useVote } from "../src";
 import {
   render,
   screen,
@@ -9,13 +9,13 @@ import {
 } from "@testing-library/react";
 
 const arcConfig = new ArcConfig("private");
+const voteId =
+  "0x33472fe4769ad20fbb6e14d28074d0f21e7e0a34b09edd2b841714575c5e0da6";
 
 describe("Vote component ", () => {
   afterEach(() => cleanup());
 
   it("Shows vote id", async () => {
-    const voteId =
-      "0x0795aafa7207e2c48241fa432f1f66789e0d2a2e2802208ced7ca3ff216dc74e";
     const { container } = render(
       <Arc config={arcConfig}>
         <Vote id={voteId}>
@@ -28,6 +28,30 @@ describe("Vote component ", () => {
 
     const id = await screen.findByText(/Vote id:/);
     expect(id).toBeInTheDocument();
+    expect(container.firstChild).toMatchInlineSnapshot(`
+      <div>
+        Vote id: ${voteId}
+      </div>
+    `);
+  });
+
+  it("Shows id using useVote", async () => {
+    const VoteWithHooks = () => {
+      const [voteData] = useVote();
+      return <div>{"Vote id: " + voteData?.id}</div>;
+    };
+    const { container, findByText } = render(
+      <Arc config={arcConfig}>
+        <Vote id={voteId}>
+          <VoteWithHooks />
+        </Vote>
+      </Arc>
+    );
+
+    const name = await findByText(
+      /Vote id: 0x33472fe4769ad20fbb6e14d28074d0f21e7e0a34b09edd2b841714575c5e0da6/
+    );
+    expect(name).toBeInTheDocument();
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div>
         Vote id: ${voteId}
@@ -58,9 +82,6 @@ describe("Vote List", () => {
     const { findAllByText, queryAllByTestId, findByText } = render(
       <VoteList />
     );
-    await waitFor(() => findByText(/Vote id/), {
-      timeout: 8000,
-    });
     await waitForElementToBeRemoved(() => queryAllByTestId("default-loader"), {
       timeout: 8000,
     });

@@ -1,21 +1,21 @@
 import * as React from "react";
 import { Observable } from "rxjs";
-import { ISchemeQueryOptions as FilterOptions } from "@daostack/client";
+import { IPluginQueryOptions as FilterOptions } from "@daostack/arc.js";
 import {
   Arc as Protocol,
   ArcConfig as ProtocolConfig,
-  InferredScheme as Component,
-  SchemeEntity as Entity,
-  SchemeData as Data,
+  InferredPlugin as Component,
+  PluginEntity as Entity,
+  PluginData as Data,
   DAO,
   DAOEntity,
   CProps,
   ComponentList,
   ComponentListLogs,
   ComponentListProps,
-  applyScope,
-} from "../";
-import { CreateContextFeed } from "../runtime/ContextFeed";
+  createFilterFromScope,
+} from "../../";
+import { CreateContextFeed } from "../../runtime/ContextFeed";
 
 type Scopes = "DAO";
 
@@ -23,8 +23,7 @@ const scopeProps: Record<Scopes, string> = {
   DAO: "dao",
 };
 
-interface RequiredProps
-  extends ComponentListProps<Entity, Data, FilterOptions> {
+interface RequiredProps extends ComponentListProps<Entity, FilterOptions> {
   from?: Scopes;
 }
 
@@ -33,7 +32,7 @@ interface InferredProps extends RequiredProps {
   dao?: string;
 }
 
-class InferredSchemes extends ComponentList<InferredProps, Component> {
+class InferredPlugins extends ComponentList<InferredProps, Component> {
   createObservableEntities(): Observable<Entity[]> {
     const { config, from, filter } = this.props;
     if (!config) {
@@ -42,7 +41,7 @@ class InferredSchemes extends ComponentList<InferredProps, Component> {
       );
     }
 
-    const f = applyScope(filter, from, scopeProps, this.props);
+    const f = createFilterFromScope(filter, from, scopeProps, this.props);
     return Entity.search(config.connection, f);
   }
 
@@ -54,7 +53,12 @@ class InferredSchemes extends ComponentList<InferredProps, Component> {
     const { config } = this.props;
 
     return (
-      <Component key={`${entity.id}_${index}`} id={entity.id} config={config}>
+      <Component
+        key={`${entity.id}_${index}`}
+        id={entity.id}
+        config={config}
+        entity={entity}
+      >
         {children}
       </Component>
     );
@@ -62,29 +66,29 @@ class InferredSchemes extends ComponentList<InferredProps, Component> {
 
   public static get Entities() {
     return CreateContextFeed(
-      this._EntitiesContext.Consumer,
-      this._LogsContext.Consumer,
-      "Schemes"
+      this.EntitiesContext.Consumer,
+      this.LogsContext.Consumer,
+      "Plugins"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
-      "Schemes"
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      "Plugins"
     );
   }
 
-  protected static _EntitiesContext = React.createContext<Entity[] | undefined>(
+  protected static EntitiesContext = React.createContext<Entity[] | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
+  protected static LogsContext = React.createContext<
     ComponentListLogs | undefined
   >(undefined);
 }
 
-class Schemes extends React.Component<RequiredProps> {
+class Plugins extends React.Component<RequiredProps> {
   render() {
     const { children, from, sort, filter } = this.props;
 
@@ -96,14 +100,14 @@ class Schemes extends React.Component<RequiredProps> {
               return (
                 <DAO.Entity>
                   {(dao: DAOEntity) => (
-                    <InferredSchemes
+                    <InferredPlugins
                       dao={dao.id}
                       config={config}
                       sort={sort}
                       filter={filter}
                     >
                       {children}
-                    </InferredSchemes>
+                    </InferredPlugins>
                   )}
                 </DAO.Entity>
               );
@@ -113,9 +117,9 @@ class Schemes extends React.Component<RequiredProps> {
               }
 
               return (
-                <InferredSchemes config={config} sort={sort} filter={filter}>
+                <InferredPlugins config={config} sort={sort} filter={filter}>
                   {children}
-                </InferredSchemes>
+                </InferredPlugins>
               );
           }
         }}
@@ -124,14 +128,14 @@ class Schemes extends React.Component<RequiredProps> {
   }
 
   public static get Entities() {
-    return InferredSchemes.Entities;
+    return InferredPlugins.Entities;
   }
 
   public static get Logs() {
-    return InferredSchemes.Logs;
+    return InferredPlugins.Logs;
   }
 }
 
-export default Schemes;
+export default Plugins;
 
-export { Schemes, InferredSchemes };
+export { Plugins, InferredPlugins };

@@ -2,7 +2,7 @@ import * as React from "react";
 import {
   Reputation as Entity,
   IReputationState as Data,
-} from "@daostack/client";
+} from "@daostack/arc.js";
 import {
   Arc as Protocol,
   ArcConfig as ProtocolConfig,
@@ -10,10 +10,11 @@ import {
   DAOData as InferData,
   Component,
   ComponentLogs,
+  ComponentProps,
 } from "../";
 import { CreateContextFeed } from "../runtime/ContextFeed";
 
-interface RequiredProps {
+interface RequiredProps extends ComponentProps<Entity, Data> {
   // Address of the Reputation Token
   address?: string;
 }
@@ -38,43 +39,51 @@ class InferredReputation extends Component<InferredProps, Entity, Data> {
         "Address Missing: Please provide this field as a prop, or use the inference component."
       );
     }
-
-    return new Entity(address, config.connection);
+    return new Entity(config.connection, address);
   }
 
   public static get Entity() {
     return CreateContextFeed(
-      this._EntityContext.Consumer,
-      this._LogsContext.Consumer,
+      this.EntityContext.Consumer,
+      this.LogsContext.Consumer,
       "Reputation"
     );
   }
 
   public static get Data() {
     return CreateContextFeed(
-      this._DataContext.Consumer,
-      this._LogsContext.Consumer,
+      this.DataContext.Consumer,
+      this.LogsContext.Consumer,
       "Reputation"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
       "Reputation"
     );
   }
 
-  protected static _EntityContext = React.createContext<Entity | undefined>(
+  public static EntityContext = React.createContext<Entity | undefined>(
     undefined
   );
-  protected static _DataContext = React.createContext<Data | undefined>(
+  public static DataContext = React.createContext<Data | undefined>(undefined);
+  public static LogsContext = React.createContext<ComponentLogs | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
-    ComponentLogs | undefined
-  >(undefined);
+}
+
+function useReputation(): [Data | undefined, Entity | undefined] {
+  const data = React.useContext<Data | undefined>(
+    InferredReputation.DataContext
+  );
+  const entity = React.useContext<Entity | undefined>(
+    InferredReputation.EntityContext
+  );
+
+  return [data, entity];
 }
 
 class Reputation extends React.Component<RequiredProps> {
@@ -95,7 +104,7 @@ class Reputation extends React.Component<RequiredProps> {
               <InferComponent.Data>
                 {(dao: InferData) => (
                   <InferredReputation
-                    address={dao ? dao.reputation.address : undefined}
+                    address={dao ? dao.reputation.id : undefined}
                     config={config}
                   >
                     {children}
@@ -129,4 +138,5 @@ export {
   InferredReputation,
   Entity as ReputationEntity,
   Data as ReputationData,
+  useReputation,
 };

@@ -1,14 +1,15 @@
 import * as React from "react";
-import { Stake as Entity, IStakeState as Data } from "@daostack/client";
+import { Stake as Entity, IStakeState as Data } from "@daostack/arc.js";
 import {
   Arc as Protocol,
   ArcConfig as ProtocolConfig,
   Component,
   ComponentLogs,
+  ComponentProps,
 } from "../";
 import { CreateContextFeed } from "../runtime/ContextFeed";
 
-interface RequiredProps {
+interface RequiredProps extends ComponentProps<Entity, Data> {
   // Stake ID
   id: string;
 }
@@ -27,48 +28,49 @@ class InferredStake extends Component<InferredProps, Entity, Data> {
       );
     }
 
-    return new Entity(id, config.connection);
-  }
-
-  protected async initialize(entity: Entity): Promise<void> {
-    // TODO: remove this when this issue is resolved: https://github.com/daostack/client/issues/291
-    entity.staticState = undefined;
-    await entity.fetchStaticState();
+    return new Entity(config.connection, id);
   }
 
   public static get Entity() {
     return CreateContextFeed(
-      this._EntityContext.Consumer,
-      this._LogsContext.Consumer,
+      this.EntityContext.Consumer,
+      this.LogsContext.Consumer,
       "Stake"
     );
   }
 
   public static get Data() {
     return CreateContextFeed(
-      this._DataContext.Consumer,
-      this._LogsContext.Consumer,
+      this.DataContext.Consumer,
+      this.LogsContext.Consumer,
       "Stake"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
       "Stake"
     );
   }
 
-  protected static _EntityContext = React.createContext<Entity | undefined>(
+  public static EntityContext = React.createContext<Entity | undefined>(
     undefined
   );
-  protected static _DataContext = React.createContext<Data | undefined>(
+  public static DataContext = React.createContext<Data | undefined>(undefined);
+  public static LogsContext = React.createContext<ComponentLogs | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
-    ComponentLogs | undefined
-  >(undefined);
+}
+
+function useStake(): [Data | undefined, Entity | undefined] {
+  const data = React.useContext<Data | undefined>(InferredStake.DataContext);
+  const entity = React.useContext<Entity | undefined>(
+    InferredStake.EntityContext
+  );
+
+  return [data, entity];
 }
 
 class Stake extends React.Component<RequiredProps> {
@@ -101,4 +103,10 @@ class Stake extends React.Component<RequiredProps> {
 
 export default Stake;
 
-export { Stake, InferredStake, Entity as StakeEntity, Data as StakeData };
+export {
+  Stake,
+  InferredStake,
+  Entity as StakeEntity,
+  Data as StakeData,
+  useStake,
+};

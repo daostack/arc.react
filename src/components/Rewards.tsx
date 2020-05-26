@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Observable } from "rxjs";
-import { IRewardQueryOptions as FilterOptions } from "@daostack/client";
+import { IRewardQueryOptions as FilterOptions } from "@daostack/arc.js";
 import {
   Arc as Protocol,
   ArcConfig as ProtocolConfig,
@@ -19,7 +19,7 @@ import {
   ComponentList,
   ComponentListLogs,
   ComponentListProps,
-  applyScope,
+  createFilterFromScope,
 } from "../";
 import { CreateContextFeed } from "../runtime/ContextFeed";
 
@@ -32,8 +32,7 @@ const scopeProps: Record<Scopes, string> = {
   Token: "tokenAddress",
 };
 
-interface RequiredProps
-  extends ComponentListProps<Entity, Data, FilterOptions> {
+interface RequiredProps extends ComponentListProps<Entity, FilterOptions> {
   from?: Scopes;
 }
 
@@ -55,7 +54,7 @@ class InferredRewards extends ComponentList<InferredProps, Component> {
       );
     }
 
-    const f = applyScope(filter, from, scopeProps, this.props);
+    const f = createFilterFromScope(filter, from, scopeProps, this.props);
     return Entity.search(config.connection, f);
   }
 
@@ -67,7 +66,12 @@ class InferredRewards extends ComponentList<InferredProps, Component> {
     const { config } = this.props;
 
     return (
-      <Component key={`${entity.id}_${index}`} id={entity.id} config={config}>
+      <Component
+        key={`${entity.id}_${index}`}
+        id={entity.id}
+        config={config}
+        entity={entity}
+      >
         {children}
       </Component>
     );
@@ -75,24 +79,24 @@ class InferredRewards extends ComponentList<InferredProps, Component> {
 
   public static get Entities() {
     return CreateContextFeed(
-      this._EntitiesContext.Consumer,
-      this._LogsContext.Consumer,
+      this.EntitiesContext.Consumer,
+      this.LogsContext.Consumer,
       "Rewards"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
       "Rewards"
     );
   }
 
-  protected static _EntitiesContext = React.createContext<Entity[] | undefined>(
+  protected static EntitiesContext = React.createContext<Entity[] | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
+  protected static LogsContext = React.createContext<
     ComponentListLogs | undefined
   >(undefined);
 }
@@ -125,7 +129,7 @@ class Rewards extends React.Component<RequiredProps> {
                 <Member.Entity>
                   {(beneficiary: MemberEntity) => (
                     <InferredRewards
-                      beneficiary={beneficiary.staticState!.address}
+                      beneficiary={beneficiary.coreState!.address}
                       config={config}
                       sort={sort}
                       filter={filter}

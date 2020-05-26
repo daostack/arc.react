@@ -1,5 +1,11 @@
 import React from "react";
 import {
+  render,
+  screen,
+  cleanup,
+  waitForElementToBeRemoved,
+} from "@testing-library/react";
+import {
   Arc,
   ArcConfig,
   DAO,
@@ -8,16 +14,10 @@ import {
   Members,
   Member,
   MemberData,
+  useDAO,
 } from "../src";
-import {
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-  cleanup,
-} from "@testing-library/react";
 
-const daoAddress = "0xe7a2c59e134ee81d4035ae6db2254f79308e334f";
+const daoAddress = "0x41e5eb4acf9d65e4ac220e9afdccba0213cf60ec";
 const arcConfig = new ArcConfig("private");
 
 describe("DAO Component ", () => {
@@ -34,6 +34,28 @@ describe("DAO Component ", () => {
       </Arc>
     );
     const name = await screen.findByText(/DAO address:/);
+    expect(name).toBeInTheDocument();
+    expect(container.firstChild).toMatchInlineSnapshot(`
+      <div>
+        DAO address: ${daoAddress}
+      </div>
+    `);
+  });
+
+  it("Shows address using useDAO", async () => {
+    const DaoWithHooks = () => {
+      const [daoData] = useDAO();
+      return <div>{"DAO address: " + daoData?.id}</div>;
+    };
+    const { container, findByText } = render(
+      <Arc config={arcConfig}>
+        <DAO address={daoAddress}>
+          <DaoWithHooks />
+        </DAO>
+      </Arc>
+    );
+
+    const name = await findByText(/DAO address:/);
     expect(name).toBeInTheDocument();
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div>
@@ -62,10 +84,7 @@ describe("DAO List", () => {
   }
 
   it("Show list of DAOS ", async () => {
-    const { findAllByText, queryAllByTestId, findByText } = render(<DAOList />);
-    await waitFor(() => findByText(/DAO address:/), {
-      timeout: 8000,
-    });
+    const { findAllByText, queryAllByTestId } = render(<DAOList />);
     await waitForElementToBeRemoved(() => queryAllByTestId("default-loader"), {
       timeout: 8000,
     });
@@ -95,12 +114,7 @@ describe("DAO List", () => {
         );
       }
     }
-    const { findAllByText, queryAllByTestId, findByText } = render(
-      <DAOWithMembers />
-    );
-    await waitFor(() => findByText(/Member address:/), {
-      timeout: 8000,
-    });
+    const { findAllByText, queryAllByTestId } = render(<DAOWithMembers />);
     await waitForElementToBeRemoved(() => queryAllByTestId("default-loader"), {
       timeout: 8000,
     });

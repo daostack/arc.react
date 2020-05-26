@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Observable } from "rxjs";
-import { IMemberQueryOptions as FilterOptions } from "@daostack/client";
+import { IMemberQueryOptions as FilterOptions } from "@daostack/arc.js";
 import {
   Arc as Protocol,
   ArcConfig as ProtocolConfig,
@@ -13,7 +13,7 @@ import {
   ComponentList,
   ComponentListLogs,
   ComponentListProps,
-  applyScope,
+  createFilterFromScope,
 } from "../";
 import { CreateContextFeed } from "../runtime/ContextFeed";
 
@@ -23,8 +23,7 @@ const scopeProps: Record<Scopes, string> = {
   DAO: "dao",
 };
 
-interface RequiredProps
-  extends ComponentListProps<Entity, Data, FilterOptions> {
+interface RequiredProps extends ComponentListProps<Entity, FilterOptions> {
   from?: Scopes;
 }
 
@@ -42,7 +41,7 @@ class InferredMembers extends ComponentList<InferredProps, Component> {
       );
     }
 
-    const f = applyScope(filter, from, scopeProps, this.props);
+    const f = createFilterFromScope(filter, from, scopeProps, this.props);
     return Entity.search(config.connection, f);
   }
 
@@ -57,9 +56,10 @@ class InferredMembers extends ComponentList<InferredProps, Component> {
     return (
       <Component
         key={`${entity.id}_${index}`}
-        address={entity.staticState!.address}
-        dao={entity.staticState!.dao}
+        address={entity.coreState!.address}
+        dao={entity.coreState!.dao.entity}
         config={config}
+        entity={entity}
       >
         {children}
       </Component>
@@ -68,24 +68,24 @@ class InferredMembers extends ComponentList<InferredProps, Component> {
 
   public static get Entities() {
     return CreateContextFeed(
-      this._EntitiesContext.Consumer,
-      this._LogsContext.Consumer,
+      this.EntitiesContext.Consumer,
+      this.LogsContext.Consumer,
       "Members"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
       "Members"
     );
   }
 
-  protected static _EntitiesContext = React.createContext<Entity[] | undefined>(
+  protected static EntitiesContext = React.createContext<Entity[] | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
+  protected static LogsContext = React.createContext<
     ComponentListLogs | undefined
   >(undefined);
 }

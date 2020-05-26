@@ -1,14 +1,15 @@
 import * as React from "react";
-import { Reward as Entity, IRewardState as Data } from "@daostack/client";
+import { CreateContextFeed } from "../runtime/ContextFeed";
+import { Reward as Entity, IRewardState as Data } from "@daostack/arc.js";
 import {
   Arc as Protocol,
   ArcConfig as ProtocolConfig,
   Component,
   ComponentLogs,
+  ComponentProps,
 } from "../";
-import { CreateContextFeed } from "../runtime/ContextFeed";
 
-interface RequiredProps {
+interface RequiredProps extends ComponentProps<Entity, Data> {
   // Reward ID
   id: string;
 }
@@ -27,42 +28,49 @@ class InferredReward extends Component<InferredProps, Entity, Data> {
       );
     }
 
-    return new Entity(id, config.connection);
+    return new Entity(config.connection, id);
   }
 
   public static get Entity() {
     return CreateContextFeed(
-      this._EntityContext.Consumer,
-      this._LogsContext.Consumer,
+      this.EntityContext.Consumer,
+      this.LogsContext.Consumer,
       "Reward"
     );
   }
 
   public static get Data() {
     return CreateContextFeed(
-      this._DataContext.Consumer,
-      this._LogsContext.Consumer,
+      this.DataContext.Consumer,
+      this.LogsContext.Consumer,
       "Reward"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
       "Reward"
     );
   }
 
-  protected static _EntityContext = React.createContext<Entity | undefined>(
+  public static EntityContext = React.createContext<Entity | undefined>(
     undefined
   );
-  protected static _DataContext = React.createContext<Data | undefined>(
+  public static DataContext = React.createContext<Data | undefined>(undefined);
+  public static LogsContext = React.createContext<ComponentLogs | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
-    ComponentLogs | undefined
-  >(undefined);
+}
+
+function useReward(): [Data | undefined, Entity | undefined] {
+  const data = React.useContext<Data | undefined>(InferredReward.DataContext);
+  const entity = React.useContext<Entity | undefined>(
+    InferredReward.EntityContext
+  );
+
+  return [data, entity];
 }
 
 class Reward extends React.Component<RequiredProps> {
@@ -95,4 +103,10 @@ class Reward extends React.Component<RequiredProps> {
 
 export default Reward;
 
-export { Reward, InferredReward, Entity as RewardEntity, Data as RewardData };
+export {
+  Reward,
+  InferredReward,
+  Entity as RewardEntity,
+  Data as RewardData,
+  useReward,
+};

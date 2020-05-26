@@ -1,14 +1,10 @@
 import * as React from "react";
-import { Vote as Entity, IVoteState as Data } from "@daostack/client";
-import {
-  Arc as Protocol,
-  ArcConfig as ProtocolConfig,
-  Component,
-  ComponentLogs,
-} from "../";
+import { Vote as Entity, IVoteState as Data } from "@daostack/arc.js";
+import { Component, ComponentLogs, ComponentProps } from "../runtime";
 import { CreateContextFeed } from "../runtime/ContextFeed";
+import { Arc as Protocol, ArcConfig as ProtocolConfig } from "../protocol";
 
-interface RequiredProps {
+interface RequiredProps extends ComponentProps<Entity, Data> {
   // Vote ID
   id: string;
 }
@@ -27,48 +23,49 @@ class InferredVote extends Component<InferredProps, Entity, Data> {
       );
     }
 
-    return new Entity(id, config.connection);
-  }
-
-  protected async initialize(entity: Entity): Promise<void> {
-    // TODO: this is a bug, fix it...
-    entity.staticState = undefined;
-    entity.staticState = await entity.fetchStaticState();
+    return new Entity(config.connection, id);
   }
 
   public static get Entity() {
     return CreateContextFeed(
-      this._EntityContext.Consumer,
-      this._LogsContext.Consumer,
+      this.EntityContext.Consumer,
+      this.LogsContext.Consumer,
       "Vote"
     );
   }
 
   public static get Data() {
     return CreateContextFeed(
-      this._DataContext.Consumer,
-      this._LogsContext.Consumer,
+      this.DataContext.Consumer,
+      this.LogsContext.Consumer,
       "Vote"
     );
   }
 
   public static get Logs() {
     return CreateContextFeed(
-      this._LogsContext.Consumer,
-      this._LogsContext.Consumer,
+      this.LogsContext.Consumer,
+      this.LogsContext.Consumer,
       "Vote"
     );
   }
 
-  protected static _EntityContext = React.createContext<Entity | undefined>(
+  public static EntityContext = React.createContext<Entity | undefined>(
     undefined
   );
-  protected static _DataContext = React.createContext<Data | undefined>(
+  public static DataContext = React.createContext<Data | undefined>(undefined);
+  public static LogsContext = React.createContext<ComponentLogs | undefined>(
     undefined
   );
-  protected static _LogsContext = React.createContext<
-    ComponentLogs | undefined
-  >(undefined);
+}
+
+function useVote(): [Data | undefined, Entity | undefined] {
+  const data = React.useContext<Data | undefined>(InferredVote.DataContext);
+  const entity = React.useContext<Entity | undefined>(
+    InferredVote.EntityContext
+  );
+
+  return [data, entity];
 }
 
 class Vote extends React.Component<RequiredProps> {
@@ -101,4 +98,4 @@ class Vote extends React.Component<RequiredProps> {
 
 export default Vote;
 
-export { Vote, InferredVote, Entity as VoteEntity, Data as VoteData };
+export { Vote, InferredVote, Entity as VoteEntity, Data as VoteData, useVote };

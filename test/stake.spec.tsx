@@ -1,22 +1,23 @@
 import React from "react";
-import { Arc, ArcConfig, StakeData, Stake, Stakes } from "../src";
+import { Arc, ArcConfig, StakeData, Stake, Stakes, useStake } from "../src";
 import {
   render,
   screen,
   waitForElementToBeRemoved,
   waitFor,
   cleanup,
+  fireEvent,
 } from "@testing-library/react";
 
 const arcConfig = new ArcConfig("private");
+const stakeId =
+  "0x8da77eedf77582e746a3c92463bb07bff48fdbb6dc965fdbbfc45f3b468a7679";
 
 describe("Stake component ", () => {
   afterEach(() => cleanup());
 
   it("Shows stake id", async () => {
-    const stakeId =
-      "0x3d6b71c0fa97d433642c45b0b2f9642e0c79d0258ad4ff4dce667222dc15f526";
-    const { container } = render(
+    const { container, findByTestId } = render(
       <Arc config={arcConfig}>
         <Stake id={stakeId}>
           <Stake.Data>
@@ -26,8 +27,34 @@ describe("Stake component ", () => {
       </Arc>
     );
 
+    const loader = await findByTestId("default-loader");
+    fireEvent.mouseEnter(loader);
     const id = await screen.findByText(/Stake id:/);
     expect(id).toBeInTheDocument();
+    expect(container.firstChild).toMatchInlineSnapshot(`
+      <div>
+        Stake id: ${stakeId}
+      </div>
+    `);
+  });
+
+  it("Shows id using useStake", async () => {
+    const StakeWithHooks = () => {
+      const [stakeData] = useStake();
+      return <div>{"Stake id: " + stakeData?.id}</div>;
+    };
+    const { container, findByText } = render(
+      <Arc config={arcConfig}>
+        <Stake id={stakeId}>
+          <StakeWithHooks />
+        </Stake>
+      </Arc>
+    );
+
+    const name = await findByText(
+      /Stake id: 0x8da77eedf77582e746a3c92463bb07bff48fdbb6dc965fdbbfc45f3b468a7679/
+    );
+    expect(name).toBeInTheDocument();
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div>
         Stake id: ${stakeId}
@@ -38,7 +65,6 @@ describe("Stake component ", () => {
 
 describe("Stake List", () => {
   afterEach(() => cleanup());
-
   class StakeList extends React.Component {
     render() {
       return (
@@ -53,14 +79,10 @@ describe("Stake List", () => {
       );
     }
   }
-
   it("Show list of stake ", async () => {
     const { findAllByText, queryAllByTestId, findByText } = render(
       <StakeList />
     );
-    await waitFor(() => findByText(/Stake id:/), {
-      timeout: 8000,
-    });
     await waitForElementToBeRemoved(() => queryAllByTestId("default-loader"), {
       timeout: 8000,
     });
