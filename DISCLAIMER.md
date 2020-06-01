@@ -10,4 +10,4 @@ Subgraph: https://github.com/daostack/subgraph/tree/ganache-0.1.1-rc.20-v2-0.1.1
 Arc.JS: https://github.com/daostack/arc.js/tree/2.0.0-experimental.35
 ```
 
-It has not been audited yet. Please check the discord channel: https://discord.com/invite/6BSewtY to keep updated and get more information
+It has not been audited yet, we strongly recommend to wait until it is on a stable version to use this library; otherwise use at your own risk. Please check the discord channel: https://discord.com/invite/6BSewtY to keep updated and get more information
