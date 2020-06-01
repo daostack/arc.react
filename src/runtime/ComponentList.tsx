@@ -126,6 +126,10 @@ export abstract class ComponentList<
             entities.map((entity, index) =>
               this.renderComponent(entity, children, index)
             )
+          ) : entities.length === 0 ? (
+            <div style={{ width: "auto", display: "flex", flexWrap: "wrap" }}>
+              No elements created yet!
+            </div>
           ) : (
             <LoadingView logs={logs} />
           )}
