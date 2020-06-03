@@ -1,5 +1,7 @@
 # Arc.react
 
+## Warning: This library uses Arc v2 (Pre-Alpha). See [disclaimer](./DISCLAIMER.md) for more information
+
 > [Arc.react](https://github.com/daostack/arc.react) componentizes [DAOstack's Arc.js library](https://github.com/daostack/arc.js), enabling easier React application integration.
 
 **Turn any React app into a DAO enabled dApp in just:**
