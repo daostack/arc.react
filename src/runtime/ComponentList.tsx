@@ -9,6 +9,7 @@ import { Component } from "./Component";
 import { ComponentListLogs } from "./logging/ComponentListLogs";
 import { MaybeAsync, executeMaybeAsyncFunction } from "./utils/async";
 import LoadingView from "./LoadingView";
+import { EmptyView, EmptyRenderFunc } from "./EmptyView";
 export { ComponentListLogs };
 
 // Extract the derived component's template parameters
@@ -127,9 +128,15 @@ export abstract class ComponentList<
               this.renderComponent(entity, children, index)
             )
           ) : entities.length === 0 ? (
-            <div style={{ width: "auto", display: "flex", flexWrap: "wrap" }}>
-              No elements created yet!
-            </div>
+            <EmptyView.Render>
+              {(customEmpty: EmptyRenderFunc) =>
+                customEmpty ? (
+                  customEmpty()
+                ) : (
+                  <div data-testid="default-empty-div" />
+                )
+              }
+            </EmptyView.Render>
           ) : (
             <LoadingView logs={logs} />
           )}
